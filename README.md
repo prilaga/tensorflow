@@ -2,6 +2,75 @@
   <img src="https://www.tensorflow.org/images/tf_logo_horizontal.png">
 </div>
 
+------------------- |
+## How to build
+
+### Issue:
+https://github.com/tensorflow/tensorflow/issues/75815#issuecomment-2564270876
+
+### Solution:
+1. Android sdk 30 should be installed
+2. Download tensorflow sources and replace
+3. Use ruy sources
+4. Modify file and add support for 16KB pages
+   /Users/**NAME**/Development/projects/Test/tensorflow/tensorflow/lite/build_def.bzl
+
+```
+def tflite_pagesize_linkopts():
+    """Defines linker flags for setting the page size."""
+    return select({
+        clean_dep("//tensorflow:android_arm64"): [
+            "-Wl,-z,max-page-size=16384",
+        ],
+        "//conditions:default": [],
+    })
+
+def tflite_linkopts():
+    """Defines linker flags for linking TFLite binary."""
+    return tflite_linkopts_unstripped() + tflite_symbol_opts() + tflite_pagesize_linkopts()
+
+def tflite_jni_linkopts():
+    """Defines linker flags for linking TFLite binary with JNI."""
+    return tflite_jni_linkopts_unstripped() + tflite_symbol_opts() + tflite_pagesize_linkopts()
+```
+
+5. Terminal commands, one by one:
+
+```
+cd /Users/**NAME**/Development/projects/Test/tensorflow
+./configure
+phyton default
+ROCm: no
+CUDA: no
+bazel default
+workspace for android: yes
+ndk path: /Users/**NAME**/Development/projects/NDK/android-ndk-r25b/
+Android NDK API level to use: 21
+ANDROID_BUILD_TOOLS_VERSION="30.0.3”
+SDK_API_LEVEL="30”
+ios: no
+```
+
+6. Build
+
+```
+bazel build -c opt --cxxopt=--std=c++17 --config=android_arm64 \
+--fat_apk_cpu=x86,x86_64,arm64-v8a,armeabi-v7a \
+--define=android_dexmerger_tool=d8_dexmerger \
+--define=android_incremental_dexing_tool=d8_dexbuilder \
+//tensorflow/lite/java:tensorflow-lite
+```
+
+7. Output dir:
+```
+./tensorflow/bazel-out/android-arm64-v8a-opt/bin/tensorflow/lite/java/libtensorflowlite_jni.so
+```
+
+
+------------------- |
+
+
+
 [![Python](https://img.shields.io/pypi/pyversions/tensorflow.svg)](https://badge.fury.io/py/tensorflow)
 [![PyPI](https://badge.fury.io/py/tensorflow.svg)](https://badge.fury.io/py/tensorflow)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4724125.svg)](https://doi.org/10.5281/zenodo.4724125)
